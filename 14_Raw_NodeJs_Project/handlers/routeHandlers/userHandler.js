@@ -1,5 +1,6 @@
 const lib = require('../../lib/data');
 const { hash, parseJSON } = require('../../helpers/utilities');
+const tokenHandler = require('./tokenHandler');
 
 const handle = {};
 
@@ -21,17 +22,35 @@ handle._user.get = (req, callback) => {
             ? req.queryStringObj.phone
             : false;
     if (phone) {
-        lib.read('users', phone, (readErr, data) => {
-            const user = { ...parseJSON(data) };
-            delete user.password;
-            if (!readErr) {
-                callback(200, user);
-            } else {
-                callback(404, {
-                    error: 'User not found',
-                });
-            }
-        });
+        const token =
+            typeof req.headersObj.token === 'string' && req.headersObj.token?.trim().length === 20
+                ? req.headersObj.token
+                : false;
+        if (token) {
+            tokenHandler._token.verify(token, phone, (valid) => {
+                if (valid) {
+                    lib.read('users', phone, (readErr, data) => {
+                        const user = { ...parseJSON(data) };
+                        delete user.password;
+                        if (!readErr) {
+                            callback(200, user);
+                        } else {
+                            callback(404, {
+                                error: 'User not found',
+                            });
+                        }
+                    });
+                } else {
+                    callback(403, {
+                        error: 'Authorization failed',
+                    });
+                }
+            });
+        } else {
+            callback(400, {
+                error: 'Invalid token',
+            });
+        }
     } else {
         callback(400, {
             error: 'Not a valid phone number',
@@ -114,36 +133,56 @@ handle._user.put = (req, callback) => {
             : false;
     if (phone) {
         if (firstname || lastname || password) {
-            lib.read('users', phone, (readErr, data) => {
-                if (!readErr && data) {
-                    const userData = { ...parseJSON(data) };
-                    if (firstname) {
-                        userData.firstname = firstname;
-                    }
-                    if (lastname) {
-                        userData.lastname = lastname;
-                    }
-                    if (password) {
-                        userData.password = hash(password);
-                    }
+            const token =
+                typeof req.headersObj.token === 'string'
+                && req.headersObj.token?.trim().length === 20
+                    ? req.headersObj.token
+                    : false;
 
-                    lib.update('users', phone, userData, (updateErr) => {
-                        if (!updateErr) {
-                            callback(200, {
-                                message: 'Successfully update the user',
-                            });
-                        } else {
-                            callback(500, {
-                                error: 'There was an error in server side',
-                            });
-                        }
-                    });
-                } else {
-                    callback(500, {
-                        error: 'There was an error in server side',
-                    });
-                }
-            });
+            if (token) {
+                tokenHandler._token.verify(token, phone, (valid) => {
+                    if (valid) {
+                        lib.read('users', phone, (readErr, data) => {
+                            if (!readErr && data) {
+                                const userData = { ...parseJSON(data) };
+                                if (firstname) {
+                                    userData.firstname = firstname;
+                                }
+                                if (lastname) {
+                                    userData.lastname = lastname;
+                                }
+                                if (password) {
+                                    userData.password = hash(password);
+                                }
+
+                                lib.update('users', phone, userData, (updateErr) => {
+                                    if (!updateErr) {
+                                        callback(200, {
+                                            message: 'Successfully update the user',
+                                        });
+                                    } else {
+                                        callback(500, {
+                                            error: 'There was an error in server side',
+                                        });
+                                    }
+                                });
+                            } else {
+                                callback(500, {
+                                    error: 'There was an error in server side',
+                                });
+                            }
+                        });
+                    } else {
+                        callback(403, {
+                            error: 'Authorization failed',
+                        });
+                    }
+                });
+            } else {
+                callback(400, {
+                    error: 'Invalid token',
+                });
+            }
         } else {
             callback(400, {
                 error: 'You have a problem with the request',
@@ -163,21 +202,39 @@ handle._user.delete = (req, callback) => {
             ? req.queryStringObj.phone
             : false;
     if (phone) {
-        lib.read('users', phone, (readErr, data) => {
-            if (!readErr && data) {
-                lib.delete('users', phone, (deleteErr) => {
-                    if (!deleteErr) {
-                        callback(200, {
-                            message: 'Deleted successfully',
-                        });
-                    } else {
-                        callback(500, {
-                            error: 'There was an error in server side',
-                        });
-                    }
-                });
-            }
-        });
+        const token =
+            typeof req.headersObj.token === 'string' && req.headersObj.token?.trim().length === 20
+                ? req.headersObj.token
+                : false;
+        if (token) {
+            tokenHandler._token.verify(token, phone, (valid) => {
+                if (valid) {
+                    lib.read('users', phone, (readErr, data) => {
+                        if (!readErr && data) {
+                            lib.delete('users', phone, (deleteErr) => {
+                                if (!deleteErr) {
+                                    callback(200, {
+                                        message: 'Deleted successfully',
+                                    });
+                                } else {
+                                    callback(500, {
+                                        error: 'There was an error in server side',
+                                    });
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    callback(403, {
+                        error: 'Authorization failed',
+                    });
+                }
+            });
+        } else {
+            callback(400, {
+                error: 'Invalid token',
+            });
+        }
     } else {
         callback(400, {
             error: 'Invalid phone number',

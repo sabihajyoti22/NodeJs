@@ -23,4 +23,16 @@ utlities.hash = (str) => {
     return false;
 };
 
+utlities.createRandomString = (strLength) => {
+    let output = '';
+
+    const characters = 'abcdefghijklmnopqrstuvwxyz1234567890';
+
+    for (let i = 1; i <= strLength; i += 1) {
+        output += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+
+    return output;
+};
+
 module.exports = utlities;
