@@ -15,10 +15,10 @@ const app = {};
 
 // create server
 app.createServer = () => {
-    const server = http.createServer(app.handleReqRes);
-    server.listen(environment.port, () => {
-        console.log(`Server is running on ${environment.port}`);
-    });
+  const server = http.createServer(app.handleReqRes);
+  server.listen(environment.port, () => {
+    console.log(`Server is running on ${environment.port}`);
+  });
 };
 
 // handle Request Response
