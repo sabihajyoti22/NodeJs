@@ -79,4 +79,15 @@ lib.delete = (dir, file, callback) => {
   });
 };
 
+lib.list = (dir, callback) => {
+  fs.readdir(`${lib.baseURL + dir}/`, (errReadDir, fileNames) => {
+    if (!errReadDir) {
+      const trimmedFileNames = fileNames.map((file) => file.replace('.json', ''));
+      callback(false, trimmedFileNames);
+    } else {
+      callback("Couldn't read the directory");
+    }
+  });
+};
+
 module.exports = lib;
